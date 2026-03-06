@@ -1,11 +1,144 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>Display a map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
-</body>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+      #map {position: absolute; top: 0; right: 0; bottom: 0; left: 0;}
+    
+      #upload-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000; /* Musi być wyższy niż z-index mapy */
+  }
+
+    .custom-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        background-color: white;
+        border: 2px solid rgba(0,0,0,0.2);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+        box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+        transition: background-color 0.2s;
+    }
+
+    .custom-button:hover {
+        background-color: #f4f4f4;
+    }
+
+    </style>
+  </head>
+  <body>
+    <div id="map">
+      <a href="https://www.maptiler.com" style="position:absolute;left:10px;bottom:10px;z-index:999;"><img src="https://api.maptiler.com/resources/logo.svg" alt="MapTiler logo"></a>
+    </div>
+    <div id="upload-container">
+    <label for="input-json" class="custom-button">
+        <span>+</span>
+        <input type="file" id="input-json" accept=".json" style="display: none;">
+    </label>
+</div>
+    
+    <script>
+      const key = 'wD54InrFLnCBbJzeUzKr';
+      const map = L.map('map').setView([54.25722, 18.61052], 6); //starting position
+     
+      const layerGroup = L.layerGroup().addTo(map);
+     
+      L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${key}`,{ //style URL
+        tileSize: 512,
+        zoomOffset: -1,
+        minZoom: 1,
+        attribution: "\u003ca href=\"https://www.maptiler.com/copyright/\" target=\"_blank\"\u003e\u0026copy; MapTiler\u003c/a\u003e \u003ca href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\"\u003e\u0026copy; OpenStreetMap contributors\u003c/a\u003e",
+        crossOrigin: true
+      }).addTo(map);
+      
+
+      function dodawanie(nazwa,lat,lon,color){
+          var marker = L.circleMarker([lat,lon], {
+              radius:10,
+              color:color,
+              fillColor:color,
+              fillOpacity:0.6
+            }).addTo(map);
+          marker.bindPopup(nazwa);
+          return marker;
+        }
+
+        // Główna funkcja przechodząca po rekordach
+      function przetworzIRysuj(listaOsob) {
+        // 1. Opcjonalnie: czyścimy poprzednie punkty z mapy
+        layerGroup.clearLayers();
+
+        // 2. Iteracja po każdym rekordzie z JSONa
+        listaOsob.forEach(function(osoba) {
+            // Przyjmujemy, że Twój JSON ma klucze: imie, nazwisko, dni_od_ostatniej_wizyty, lat, lon
+            
+            // Określamy kolor na podstawie dni (przykład: powyżej 30 dni to czerwony)
+            let kolor = "green";
+            if (osoba.dni_od_ostatniej_wizyty > 30) {
+                kolor = "red";
+            } else if (osoba.dni_od_ostatniej_wizyty > 14) {
+                kolor = "orange";
+            }
+
+            // Tworzymy etykietę (popup)
+            const opis = `
+                <b>${osoba.imie} ${osoba.nazwisko}</b><br>
+                Wizyta: ${osoba.dni_od_ostatniej_wizyty} dni temu
+            `;
+
+            // Wykorzystujemy Twoją istniejącą funkcję dodawanie()
+            // Zwróć uwagę, czy nazwy kluczy w JSON (np. osoba.lat) zgadzają się z plikiem!
+            const m = dodawanie(opis, osoba.lat, osoba.lon, kolor);
+            
+            // Dodajemy do grupy warstw
+            layerGroup.addLayer(m);
+        });
+
+        // 3. Automatyczne dopasowanie widoku mapy do nowych punktów
+        if (layerGroup.getLayers().length > 0) {
+            const bounds = L.featureGroup(layerGroup.getLayers()).getBounds();
+            map.fitBounds(bounds);
+        }
+
+        alert(`Pomyślnie wczytano ${listaOsob.length} rekordów.`);
+    }
+
+    // Funkcja obsługująca wczytywanie pliku
+    document.getElementById('input-json').addEventListener('change', function(event) {
+    const plik = event.target.files[0];
+    if (!plik) return;
+
+    const reader = new FileReader();
+
+    // To wykona się, gdy przeglądarka skończy czytać plik
+    // Wewnątrz reader.onload:
+    reader.onload = function(e) {
+        const tekst = e.target.result;
+        console.log("Surowy tekst z pliku:", tekst); // To pokaże nam co jest w środku
+        try {
+            const dane = JSON.parse(tekst);
+            przetworzIRysuj(dane);
+        } catch (err) {
+            console.error("Błąd parsowania:", err.message);
+            alert("Błąd formatu JSON! Sprawdź konsolę (F12).");
+        }
+    };
+
+    reader.readAsText(plik);
+});
+    </script>
+  </body>
 </html>

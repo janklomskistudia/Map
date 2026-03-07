@@ -104,7 +104,6 @@
     </label>
     <label id="show-settings" for="show-settings" class="custom-button">
       <span class="material-symbols-outlined">settings</span>
-      <input type="file" id="input-json" accept=".json" style="display: none;">
     </label>
   </div>
   <div id="settings-panel" class="settings-sidebar">
@@ -113,10 +112,65 @@
       <span id="close-settings" class="material-symbols-outlined" style="cursor: pointer;">close</span>
     </div>
     <div class="settings-content">
-      <p>Tutaj możesz dodać opcje konfiguracji, np. zmianę progów kolorów.</p>
-      <label>
-        <input type="checkbox" id="auto-zoom"> Auto-zoom po wczytaniu
-      </label>
+      <div class="settings-content">
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px;">Kolor 1:</label>
+          <select id="color-1" style="width: 100%; padding: 5px;">
+            <option value="green" selected>Zielony</option>
+            <option value="yellow">Żółty</option>
+            <option value="red">Czerwony</option>
+            <option value="czarny">Morski</option>
+            <option value="purple">Fioletowy</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px;">
+            Próg wizyty: <span id="days-value">30</span> dni
+          </label>
+          <input type="range" id="thresh-1" min="1" max="2000" value="30" style="width: 100%;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px;">Kolor 2:</label>
+          <select id="color-2" style="width: 100%; padding: 5px;">
+            <option value="green" selected>Żółty</option>
+            <option value="yellow">Żółty</option>
+            <option value="red">Czerwony</option>
+            <option value="czarny">Morski</option>
+            <option value="purple">Fioletowy</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px;">
+            Próg wizyty: <span id="days-value">30</span> dni
+          </label>
+          <input type="range" id="thresh-2" min="1" max="2000" value="200" style="width: 100%;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px;">Kolor 3:</label>
+          <select id="color-3" style="width: 100%; padding: 5px;">
+            <option value="green" selected>Żółty</option>
+            <option value="yellow">Żółty</option>
+            <option value="red">Czerwony</option>
+            <option value="czarny">Morski</option>
+            <option value="purple">Fioletowy</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px;">
+            Próg wizyty: <span id="days-value">30</span> dni
+          </label>
+          <input type="range" id="thresh-3" min="1" max="2000" value="1000" style="width: 100%;">
+        </div>
+
+
+        <button id="apply-settings"
+          style="width: 100%; padding: 8px; cursor: pointer; background: #333; color: white; border: none; border-radius: 4px;">
+          Zastosuj i przerysuj
+        </button>
+      </div>
+
+
+
     </div>
   </div>
 
@@ -146,11 +200,21 @@
       return marker;
     }
 
+    document.getElementById('thresh-1').addEventListener('input', e => document.getElementById('val-1').textContent = e.target.value);
+    document.getElementById('thresh-2').addEventListener('input', e => document.getElementById('val-2').textContent = e.target.value);
     // Główna funkcja przechodząca po rekordach
     function przetworzIRysuj(listaOsob) {
       // 1. Opcjonalnie: czyścimy poprzednie punkty z mapy
+      ostatnieDane = listaOsob;
       layerGroup.clearLayers();
 
+
+      const t1 = parseInt(document.getElementById('thresh-1').value);
+      const t2 = parseInt(document.getElementById('thresh-2').value);
+
+      const c1 = document.getElementById('color-1').value;
+      const c2 = document.getElementById('color-2').value;
+      const c3 = document.getElementById('color-3').value;
       // 2. Iteracja po każdym rekordzie z JSONa
       listaOsob.forEach(function (osoba) {
         // Przyjmujemy, że Twój JSON ma klucze: imie, nazwisko, dni_od_ostatniej_wizyty, lat, lon
@@ -228,6 +292,58 @@
     map.on('click', function () {
       settingsPanel.classList.remove('open');
     });
+
+    // Globalna zmienna na dane, żeby móc przerysować mapę po zmianie ustawień
+    let ostatnieDane = [];
+
+    // Funkcja aktualizująca tekst przy suwaku
+    document.getElementById('days-threshold').addEventListener('input', function (e) {
+      document.getElementById('days-value').textContent = e.target.value;
+    });
+
+    function przetworzIRysuj(listaOsob) {
+      ostatnieDane = listaOsob; // Zapisujemy dane na później
+      layerGroup.clearLayers();
+
+      // Pobieramy wartości z ustawień
+      const progCzerwony = parseInt(document.getElementById('days-threshold').value);
+      const kolorBazowy = document.getElementById('base-color-select').value;
+
+      listaOsob.forEach(function (osoba) {
+        let kolor = kolorBazowy;
+
+        // Logika kolorowania oparta na suwaku
+        if (osoba.dni_od_ostatniej_wizyty > progCzerwony) {
+          kolor = "red";
+        } else if (osoba.dni_od_ostatniej_wizyty > progCzerwony / 2) {
+          kolor = "orange";
+        }
+
+        const opis = `
+            <b>${osoba.imie} ${osoba.nazwisko}</b><br>
+            Wizyta: ${osoba.dni_od_ostatniej_wizyty} dni temu
+        `;
+
+        const m = dodawanie(opis, osoba.lat, osoba.lon, kolor);
+        layerGroup.addLayer(m);
+      });
+
+      if (layerGroup.getLayers().length > 0) {
+        const bounds = L.featureGroup(layerGroup.getLayers()).getBounds();
+        map.fitBounds(bounds);
+      }
+    }
+
+    // Obsługa przycisku "Zastosuj" w ustawieniach
+    document.getElementById('apply-settings').addEventListener('click', function () {
+      if (ostatnieDane.length > 0) {
+        przetworzIRysuj(ostatnieDane);
+        settingsPanel.classList.remove('open'); // Zamyka panel po zapisaniu
+      } else {
+        alert("Najpierw wczytaj plik JSON!");
+      }
+    });
+
   </script>
 </body>
 

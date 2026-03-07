@@ -3,6 +3,8 @@
 
 Lekka i szybka aplikacja webowa do wizualizacji bazy klientów na mapie Polski. Stworzona, aby ułatwić planowanie tras i identyfikację miejsc, które wymagają ponownej wizyty.
 
+Link do strony ze stroną: https://janklomskistudia.github.io/Map/
+
 ---
 
 ## 🚀 Szybki Start

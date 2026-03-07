@@ -120,25 +120,25 @@
     <h3 class="color-settings">Ustawienia Kolorów</h3>
     <div class="settings-content">
       <div class="range-group">
-        <label><b>Kolor 1: </b>0 do <span id="val-1">30</span> dni</label>
+        <label><b>Kolor 1: </b>0 do <span id="val-1">30</span></label>
         <select id="color-1">
           <option value="green" selected>Zielony</option>
           <option value="blue">Niebieski</option>
           <option value="teal">Morski</option>
         </select>
-        <input type="range" id="thresh-1" min="1" max="500" value="30">
+        <input type="range" id="thresh-1" min="0" max="100" step="0.1" value="17.5">
       </div>
       <div class="range-group">
-        <label><b>Kolor 2: </b><span id="val-1-mirror">30</span> do <span id="val-2">200</span> dni</label>
+        <label><b>Kolor 2: </b><span id="val-1-mirror">30</span> do <span id="val-2">200</span></label>
         <select id="color-2">
           <option value="yellow" selected>Żółty</option>
           <option value="orange">Pomarańczowy</option>
           <option value="purple">Fioletowy</option>
         </select>
-        <input type="range" id="thresh-2" min="1" max="2000" value="200">
+        <input type="range" id="thresh-2" min="0" max="100" step="0.1" value="45">
       </div>
       <div class="range-group">
-        <label><b>Kolor 3: </b>Powyżej <span id="val-2-mirror">200</span> dni</label>
+        <label><b>Kolor 3: </b>Powyżej <span id="val-2-mirror">200</span></label>
         <select id="color-3">
           <option value="red" selected>Czerwony</option>
           <option value="black">Czarny</option>
@@ -146,11 +146,15 @@
       </div>
 
       <button id="apply-settings"
-        style="width: 100%; padding: 10px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        style="width: 100%; padding: 10px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer;font-size: small;">
         Zastosuj i przerysuj
       </button>
     </div>
     <hr>
+    <a href="https://jsonformatter.org/xml-to-json" target="_blank"
+      style="display: block; width: 100%; padding: 10px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer; text-align: center; text-decoration: none; box-sizing: border-box; font-family: Arial, sans-serif; margin-top: 10px; font-size: small;">
+      Konwersja XML to JSON
+    </a>
   </div>
 
   <script>
@@ -175,16 +179,21 @@
     const t2 = document.getElementById('thresh-2');
 
     // Aktualizacja etykiet tekstowych przy przesuwaniu suwaków
+    // Aktualizacja etykiet tekstowych
+    // Aktualizacja etykiet tekstowych przy przesuwaniu suwaków
     t1.addEventListener('input', () => {
-      document.getElementById('val-1').textContent = t1.value;
-      document.getElementById('val-1-mirror').textContent = t1.value;
+      const dni = skalarNaDni(t1.value);
+      const tekst = formatujDni(dni);
+      document.getElementById('val-1').textContent = tekst;
+      document.getElementById('val-1-mirror').textContent = tekst;
     });
 
     t2.addEventListener('input', () => {
-      document.getElementById('val-2').textContent = t2.value;
-      document.getElementById('val-2-mirror').textContent = t2.value;
+      const dni = skalarNaDni(t2.value);
+      const tekst = formatujDni(dni);
+      document.getElementById('val-2').textContent = tekst;
+      document.getElementById('val-2-mirror').textContent = tekst;
     });
-
     // Otwieranie/Zamykanie
     document.getElementById('show-settings').onclick = () => document.getElementById('settings-panel').classList.add('open');
     document.getElementById('close-settings').onclick = () => document.getElementById('settings-panel').classList.remove('open');
@@ -195,8 +204,8 @@
       layerGroup.clearLayers();
 
       // Pobranie aktualnych wartości z suwaków i selectów
-      const prog1 = parseInt(t1.value);
-      const prog2 = parseInt(t2.value);
+      const prog1 = skalarNaDni(t1.value);
+      const prog2 = skalarNaDni(t2.value);
       const c1 = document.getElementById('color-1').value;
       const c2 = document.getElementById('color-2').value;
       const c3 = document.getElementById('color-3').value;
@@ -240,6 +249,11 @@
       reader.readAsText(file);
     };
 
+    function skalarNaDni(val) {
+      // val^2 / 33 daje płynny wzrost od 0 do ok. 3000
+      return Math.round(Math.pow(val, 2) / 3.42);
+    }
+
     // Przycisk Zastosuj
     document.getElementById('apply-settings').onclick = () => {
       if (ostatnieDane.length > 0) {
@@ -249,6 +263,15 @@
         alert("Najpierw wczytaj dane!");
       }
     };
+
+    function formatujDni(dni) {
+      if (dni < 365) {
+        return `${dni} dni`;
+      } else {
+        const lata = (dni / 365).toFixed(1);
+        return `${dni} dni (~${lata} lat)`;
+      }
+    }
   </script>
 </body>
 

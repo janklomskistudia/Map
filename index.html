@@ -1,142 +1,234 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-    <title>Display a map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <style>
-      #map {position: absolute; top: 0; right: 0; bottom: 0; left: 0;}
-    
-      #upload-container {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 1000; /* Musi być wyższy niż z-index mapy */
-  }
+
+<head>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Display a map</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon" />
+
+  <style>
+    body {
+      overflow: hidden;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+    }
+
+    #upload-container {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      /* Musi być wyższy niż z-index mapy */
+    }
+
     .custom-button {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 40px;
-        height: 40px;
-        background-color: white;
-        border: 2px solid rgba(0,0,0,0.2);
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 24px;
-        font-weight: bold;
-        color: #333;
-        box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-        transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background-color: white;
+      border: 2px solid rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+      transition: background-color 0.2s;
     }
 
     .custom-button:hover {
-        background-color: #f4f4f4;
+      background-color: #f4f4f4;
     }
-    </style>
-  </head>
-  <body>
-    <div id="map">
-      <a href="https://www.maptiler.com" style="position:absolute;left:10px;bottom:10px;z-index:999;"><img src="https://api.maptiler.com/resources/logo.svg" alt="MapTiler logo"></a>
-    </div>
-    <div id="upload-container">
-    <label for="input-json" class="custom-button">
-        <span>+</span>
-        <input type="file" id="input-json" accept=".json" style="display: none;">
-    </label>
-</div>
-    
-    <script>
-      const key = 'wD54InrFLnCBbJzeUzKr';
-      const map = L.map('map').setView([52.31, 19.55], 7); //starting position
-     
-      const layerGroup = L.layerGroup().addTo(map);
-     
-      L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${key}`,{ //style URL
-        tileSize: 512,
-        zoomOffset: -1,
-        minZoom: 1,
-        attribution: "\u003ca href=\"https://www.maptiler.com/copyright/\" target=\"_blank\"\u003e\u0026copy; MapTiler\u003c/a\u003e \u003ca href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\"\u003e\u0026copy; OpenStreetMap contributors\u003c/a\u003e",
-        crossOrigin: true
-      }).addTo(map);
-      
 
-      function dodawanie(nazwa,lat,lon,color){
-          var marker = L.circleMarker([lat,lon], {
-              radius:10,
-              color:color,
-              fillColor:color,
-              fillOpacity:0.6
-            }).addTo(map);
-          marker.bindPopup(nazwa);
-          return marker;
+    /* Styl panelu ustawień */
+    .settings-sidebar {
+      position: absolute;
+      top: 0;
+      right: -300px;
+      /* Startuje poza ekranem z prawej strony */
+      width: 250px;
+      height: 100%;
+      background-color: white;
+      z-index: 2000;
+      /* Musi być nad mapą i przyciskami */
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3);
+      transition: right 0.3s ease;
+      /* Animacja wysuwania */
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    /* Klasa, którą dodamy w JS, aby wysunąć panel */
+    .settings-sidebar.open {
+      right: 0;
+    }
+
+    .settings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 15px;
+    }
+
+    .settings-content {
+      font-family: Arial, sans-serif;
+      color: #333;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map">
+    <a href="https://www.maptiler.com" style="position:absolute;left:10px;bottom:10px;z-index:999;"><img
+        src="https://api.maptiler.com/resources/logo.svg" alt="MapTiler logo"></a>
+  </div>
+  <div id="upload-container">
+    <label for="input-json" class="custom-button">
+      <span class="material-symbols-outlined">add</span>
+      <input type="file" id="input-json" accept=".json" style="display: none;">
+    </label>
+    <label id="show-settings" for="show-settings" class="custom-button">
+      <span class="material-symbols-outlined">settings</span>
+      <input type="file" id="input-json" accept=".json" style="display: none;">
+    </label>
+  </div>
+  <div id="settings-panel" class="settings-sidebar">
+    <div class="settings-header">
+      <h3>Ustawienia</h3>
+      <span id="close-settings" class="material-symbols-outlined" style="cursor: pointer;">close</span>
+    </div>
+    <div class="settings-content">
+      <p>Tutaj możesz dodać opcje konfiguracji, np. zmianę progów kolorów.</p>
+      <label>
+        <input type="checkbox" id="auto-zoom"> Auto-zoom po wczytaniu
+      </label>
+    </div>
+  </div>
+
+  <script>
+    const key = 'wD54InrFLnCBbJzeUzKr';
+    const map = L.map('map').setView([52.31, 19.55], 7); //starting position
+
+    const layerGroup = L.layerGroup().addTo(map);
+
+    L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${key}`, { //style URL
+      tileSize: 512,
+      zoomOffset: -1,
+      minZoom: 1,
+      attribution: "\u003ca href=\"https://www.maptiler.com/copyright/\" target=\"_blank\"\u003e\u0026copy; MapTiler\u003c/a\u003e \u003ca href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\"\u003e\u0026copy; OpenStreetMap contributors\u003c/a\u003e",
+      crossOrigin: true
+    }).addTo(map);
+
+
+    function dodawanie(nazwa, lat, lon, color) {
+      var marker = L.circleMarker([lat, lon], {
+        radius: 10,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.6
+      }).addTo(map);
+      marker.bindPopup(nazwa);
+      return marker;
+    }
+
+    // Główna funkcja przechodząca po rekordach
+    function przetworzIRysuj(listaOsob) {
+      // 1. Opcjonalnie: czyścimy poprzednie punkty z mapy
+      layerGroup.clearLayers();
+
+      // 2. Iteracja po każdym rekordzie z JSONa
+      listaOsob.forEach(function (osoba) {
+        // Przyjmujemy, że Twój JSON ma klucze: imie, nazwisko, dni_od_ostatniej_wizyty, lat, lon
+
+        // Określamy kolor na podstawie dni (przykład: powyżej 30 dni to czerwony)
+        let kolor = "green";
+        if (osoba.dni_od_ostatniej_wizyty > 30) {
+          kolor = "red";
+        } else if (osoba.dni_od_ostatniej_wizyty > 14) {
+          kolor = "orange";
         }
 
-        // Główna funkcja przechodząca po rekordach
-      function przetworzIRysuj(listaOsob) {
-        // 1. Opcjonalnie: czyścimy poprzednie punkty z mapy
-        layerGroup.clearLayers();
-
-        // 2. Iteracja po każdym rekordzie z JSONa
-        listaOsob.forEach(function(osoba) {
-            // Przyjmujemy, że Twój JSON ma klucze: imie, nazwisko, dni_od_ostatniej_wizyty, lat, lon
-            
-            // Określamy kolor na podstawie dni (przykład: powyżej 30 dni to czerwony)
-            let kolor = "green";
-            if (osoba.dni_od_ostatniej_wizyty > 30) {
-                kolor = "red";
-            } else if (osoba.dni_od_ostatniej_wizyty > 14) {
-                kolor = "orange";
-            }
-
-            // Tworzymy etykietę (popup)
-            const opis = `
+        // Tworzymy etykietę (popup)
+        const opis = `
                 <b>${osoba.imie} ${osoba.nazwisko}</b><br>
                 Wizyta: ${osoba.dni_od_ostatniej_wizyty} dni temu
             `;
 
-            // Wykorzystujemy Twoją istniejącą funkcję dodawanie()
-            // Zwróć uwagę, czy nazwy kluczy w JSON (np. osoba.lat) zgadzają się z plikiem!
-            const m = dodawanie(opis, osoba.lat, osoba.lon, kolor);
-            
-            // Dodajemy do grupy warstw
-            layerGroup.addLayer(m);
-        });
+        // Wykorzystujemy Twoją istniejącą funkcję dodawanie()
+        // Zwróć uwagę, czy nazwy kluczy w JSON (np. osoba.lat) zgadzają się z plikiem!
+        const m = dodawanie(opis, osoba.lat, osoba.lon, kolor);
 
-        // 3. Automatyczne dopasowanie widoku mapy do nowych punktów
-        if (layerGroup.getLayers().length > 0) {
-            const bounds = L.featureGroup(layerGroup.getLayers()).getBounds();
-            map.fitBounds(bounds);
-        }
+        // Dodajemy do grupy warstw
+        layerGroup.addLayer(m);
+      });
 
-        alert(`Pomyślnie wczytano ${listaOsob.length} rekordów.`);
+      // 3. Automatyczne dopasowanie widoku mapy do nowych punktów
+      if (layerGroup.getLayers().length > 0) {
+        const bounds = L.featureGroup(layerGroup.getLayers()).getBounds();
+        map.fitBounds(bounds);
+      }
+
+      alert(`Pomyślnie wczytano ${listaOsob.length} rekordów.`);
     }
 
     // Funkcja obsługująca wczytywanie pliku
-    document.getElementById('input-json').addEventListener('change', function(event) {
-    const plik = event.target.files[0];
-    if (!plik) return;
+    document.getElementById('input-json').addEventListener('change', function (event) {
+      const plik = event.target.files[0];
+      if (!plik) return;
 
-    const reader = new FileReader();
+      const reader = new FileReader();
 
-    // To wykona się, gdy przeglądarka skończy czytać plik
-    // Wewnątrz reader.onload:
-    reader.onload = function(e) {
+      // To wykona się, gdy przeglądarka skończy czytać plik
+      // Wewnątrz reader.onload:
+      reader.onload = function (e) {
         const tekst = e.target.result;
         console.log("Surowy tekst z pliku:", tekst); // To pokaże nam co jest w środku
         try {
-            const dane = JSON.parse(tekst);
-            przetworzIRysuj(dane);
+          const dane = JSON.parse(tekst);
+          przetworzIRysuj(dane);
         } catch (err) {
-            console.error("Błąd parsowania:", err.message);
-            alert("Błąd formatu JSON! Sprawdź konsolę (F12).");
+          console.error("Błąd parsowania:", err.message);
+          alert("Błąd formatu JSON! Sprawdź konsolę (F12).");
         }
-    };
+      };
 
-    reader.readAsText(plik);
-});
-    </script>
-  </body>
+      reader.readAsText(plik);
+    });
+
+    const settingsPanel = document.getElementById('settings-panel');
+    const openBtn = document.getElementById('show-settings');
+    const closeBtn = document.getElementById('close-settings');
+
+    // Otwieranie panelu
+    openBtn.addEventListener('click', function () {
+      settingsPanel.classList.add('open');
+    });
+
+    // Zamykanie panelu
+    closeBtn.addEventListener('click', function () {
+      settingsPanel.classList.remove('open');
+    });
+
+    // Opcjonalne: zamykanie po kliknięciu w mapę
+    map.on('click', function () {
+      settingsPanel.classList.remove('open');
+    });
+  </script>
+</body>
+
 </html>

@@ -1,4 +1,7 @@
 # 🗺️ Planer Wizyt Terenowych (Polska)
+
+! By użyć wersji universalnej należy wybrać wersję 1.9. Wersje 2.0+ są skierowane do już spersjonalizowanego użytku
+
 **Wersja 1.9 | Autor: Jan Kłomski 2026**
 
 Lekka i szybka aplikacja webowa do wizualizacji bazy klientów na mapie Polski. Stworzona, aby ułatwić planowanie tras i identyfikację miejsc, które wymagają ponownej wizyty.

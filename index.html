@@ -120,22 +120,22 @@
     <h3 class="color-settings">Ustawienia Kolorów</h3>
     <div class="settings-content">
       <div class="range-group">
-        <label><b>Kolor 1: </b>0 do <span id="val-1">30</span></label>
+        <label><b>Kolor 1: </b>0 do <span id="val-1">300</span></label>
         <select id="color-1">
           <option value="green" selected>Zielony</option>
           <option value="blue">Niebieski</option>
           <option value="teal">Morski</option>
         </select>
-        <input type="range" id="thresh-1" min="0" max="100" step="0.1" value="17.5">
+        <input type="range" id="thresh-1" min="0" max="100" step="0.1" value="32">
       </div>
       <div class="range-group">
-        <label><b>Kolor 2: </b><span id="val-1-mirror">30</span> do <span id="val-2">200</span></label>
+        <label><b>Kolor 2: </b><span id="val-1-mirror">300</span> do <span id="val-2">450</span></label>
         <select id="color-2">
           <option value="yellow" selected>Żółty</option>
           <option value="orange">Pomarańczowy</option>
           <option value="purple">Fioletowy</option>
         </select>
-        <input type="range" id="thresh-2" min="0" max="100" step="0.1" value="45">
+        <input type="range" id="thresh-2" min="0" max="100" step="0.1" value="40">
       </div>
       <div class="range-group">
         <label><b>Kolor 3: </b>Powyżej <span id="val-2-mirror">200</span></label>
@@ -203,10 +203,10 @@
 
     // --- LOGIKA MAPY ---
     function przetworzIRysuj(listaOsob) {
+      if (!listaOsob) return;
       ostatnieDane = listaOsob;
       layerGroup.clearLayers();
 
-      // Pobranie aktualnych wartości z suwaków i selectów
       const prog1 = skalarNaDni(t1.value);
       const prog2 = skalarNaDni(t2.value);
       const c1 = document.getElementById('color-1').value;
@@ -214,15 +214,35 @@
       const c3 = document.getElementById('color-3').value;
       const filterOld = document.getElementById('filter-old').checked;
 
+      const fData = (d) => d ? d.split('T')[0] : "Brak danych";
+
+      const capitalize = (str) => {
+        if (!str) return "";
+        return str.split(' ').map((word, index) => {
+          if (word.toLowerCase() === 'i' && index > 0) return 'i';
+          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        }).join(' ');
+      };
+
       listaOsob.forEach(osoba => {
-        let dni = osoba.dni_od_ostatniej_wizyty;
-        if (filterOld && dni <= prog2) {
-          return;
-        }
+        // 1. Pobieranie danych z JSON - upewnij się, że nazwy kluczy są identyczne jak w pliku
+        let dni = parseInt(osoba.dni_od_ostatniej_wiztyty) || 0;
+        let lat = parseFloat(osoba.Lat);
+        let lon = parseFloat(osoba.Lon);
+
+        let imie = capitalize(osoba.Imię);
+        let nazwisko = capitalize(osoba.Nazwisko);
+        let telefon = osoba.Telefon_x0020_komórkowy || "";
+
+        // --- TU BYŁ BŁĄD: DODAJEMY DEFINICJE TYCH ZMIENNYCH ---
+        let ulica = osoba.Ulica || "";
+        let miasto = osoba.Miejscowość || "";
+        let kod = osoba.Kod_x0020_pocztowy || "";
+        // -----------------------------------------------------
+
+        if (filterOld && dni <= prog2) return;
 
         let kolor;
-
-        // Logika przedziałów
         if (dni <= prog1) {
           kolor = c1;
         } else if (dni <= prog2) {
@@ -230,15 +250,41 @@
         } else {
           kolor = c3;
         }
-        //Opis
-        const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${osoba.lat},${osoba.lon}`;
+
+        // Poprawiony link do Google Maps
+        const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+
         const opis = `
-            <b>${osoba.imie} ${osoba.nazwisko}</b><br>
-            Wizyta: ${dni} dni temu<br>
-            <a href="${googleMapsUrl}" target="_blank" style="display:inline-block; margin-top:5px; padding:5px 10px; background:#4285F4; color:white; text-decoration:none; border-radius:3px;">Mapy</a>
-        `;
-        const m = dodawanie(opis, osoba.lat, osoba.lon, kolor);
-        layerGroup.addLayer(m);
+        <div style="font-family: sans-serif; line-height: 1.4; min-width: 220px;">
+            <strong style="font-size: 15px;">${imie} ${nazwisko}</strong><br>
+            <div style="font-size: 12px; color: #555; margin-bottom: 5px;">
+                ${ulica} ${miasto} ${kod}
+            </div>
+            <hr style="margin: 5px 0; border: 0; border-top: 1px solid #eee;">
+            <div style="font-size: 12px;">
+                <b>Producent:</b> ${osoba.Producent || "-"}<br>
+                <b>Zdarzenie:</b> ${osoba.Opis_x0020_zdarzenia || "-"}<br>
+                <b>Ostatnia wizyta:</b> ${fData(osoba.Data_x0020_ost_x0020_wizy)}<br>
+                <span style="color: #666;">(${dni} dni temu)</span><br>
+                <b>Montaż:</b> ${fData(osoba.Data_x0020_montaźu)}<br>
+                <b>Płatność:</b> ${fData(osoba.Data_x0020_os_x0020_płatnści)}<br>
+            </div>
+            
+            <div style="margin-top: 10px; display: flex; gap: 5px;">
+                <a href="tel:${telefon}" style="flex: 1; text-align: center; background: #28a745; color: white; padding: 10px 4px; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center;">
+                    ZADZWOŃ
+                </a>
+                <a href="${googleMapsUrl}" target="_blank" style="flex: 1; text-align: center; background: #4285F4; color: white; padding: 10px 4px; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center;">
+                    NAWIGUJ
+                </a>
+            </div>
+        </div>
+    `;
+
+        if (!isNaN(lat) && !isNaN(lon)) {
+          const m = dodawanie(opis, lat, lon, kolor);
+          layerGroup.addLayer(m);
+        }
       });
 
       if (layerGroup.getLayers().length > 0) {
@@ -246,17 +292,19 @@
       }
     }
 
-    // Wczytywanie pliku
     document.getElementById('input-json').onchange = (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
-          const dane = JSON.parse(event.target.result);
+          const json = JSON.parse(event.target.result);
+          // Wyciągamy tablicę z głębi struktury JSON
+          const dane = json.dataroot.Do_x0020_XML;
           przetworzIRysuj(dane);
         } catch (err) {
-          alert("Błąd pliku JSON!");
+          console.error(err);
+          alert("Błąd pliku JSON! Upewnij się, że struktura jest poprawna.");
         }
       };
       reader.readAsText(file);

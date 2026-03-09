@@ -120,39 +120,53 @@
     <h3 class="color-settings">Ustawienia Kolorów</h3>
     <div class="settings-content">
       <div class="range-group">
-        <label><b>Kolor 1: </b>0 do <span id="val-1">300</span></label>
+        <label><input type="checkbox" id="show-c1" checked> <b>Kolor 1: </b>0 do <span id="val-1">300</span></label>
         <select id="color-1">
           <option value="green" selected>Zielony</option>
-          <option value="blue">Niebieski</option>
-          <option value="teal">Morski</option>
+          <option value="yellow">Żółty</option>
+          <option value="red">Czerwony</option>
+          <option value="orange">Pomarańczowy</option>
+          <option value="purple">Fioletowy</option>
+          <option value="black">Czarny</option>
         </select>
         <input type="range" id="thresh-1" min="0" max="100" step="0.1" value="32">
       </div>
       <div class="range-group">
-        <label><b>Kolor 2: </b><span id="val-1-mirror">300</span> do <span id="val-2">450</span></label>
+        <label><input type="checkbox" id="show-c2" checked> <b>Kolor 2: </b><span id="val-1-mirror">300</span> do <span
+            id="val-2">450</span></label>
         <select id="color-2">
+          <option value="green">Zielony</option>
           <option value="yellow" selected>Żółty</option>
+          <option value="red">Czerwony</option>
           <option value="orange">Pomarańczowy</option>
           <option value="purple">Fioletowy</option>
+          <option value="black">Czarny</option>
         </select>
         <input type="range" id="thresh-2" min="0" max="100" step="0.1" value="40">
       </div>
       <div class="range-group">
-        <label><b>Kolor 3: </b>Powyżej <span id="val-2-mirror">200</span></label>
+        <label><input type="checkbox" id="show-c3" checked> <b>Kolor 3: </b>Powyżej <span
+            id="val-2-mirror">200</span></label>
         <select id="color-3">
+          <option value="green">Zielony</option>
+          <option value="yellow">Żółty</option>
           <option value="red" selected>Czerwony</option>
+          <option value="orange">Pomarańczowy</option>
+          <option value="purple">Fioletowy</option>
           <option value="black">Czarny</option>
         </select>
       </div>
-      <div class="range-group">
-        <label><input type="checkbox" id="filter-old"> Pokaż tylko powyżej progu 2</label>
-      </div>
-
 
       <button id="apply-settings"
         style="width: 100%; padding: 10px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer;font-size: small;">
         Zastosuj i przerysuj
       </button>
+    </div>
+    <hr>
+    <h3 class="color-settings">Filtr producenta</h3>
+    <div id="producer-filter-container"
+      style="max-height: 200px; overflow-y: auto; padding: 10px; background: #f9f9f9; border-radius: 5px; font-size: 12px;">
+      <p style="color: #888;">Wczytaj dane, aby zobaczyć listę...</p>
     </div>
     <hr>
     <a href="https://jsonformatter.org/xml-to-json" target="_blank"
@@ -164,7 +178,7 @@
   <script>
     // API
     const key = 'wD54InrFLnCBbJzeUzKr';
-
+    let wybraniProducenci = new Set();
     const map = L.map('map').setView([52.31, 19.55], 7);
     const layerGroup = L.layerGroup().addTo(map);
     let ostatnieDane = [];
@@ -202,6 +216,7 @@
     document.getElementById('close-settings').onclick = () => document.getElementById('settings-panel').classList.remove('open');
 
     // --- LOGIKA MAPY ---
+    // --- LOGIKA MAPY ---
     function przetworzIRysuj(listaOsob) {
       if (!listaOsob) return;
       ostatnieDane = listaOsob;
@@ -209,50 +224,72 @@
 
       const prog1 = skalarNaDni(t1.value);
       const prog2 = skalarNaDni(t2.value);
+
       const c1 = document.getElementById('color-1').value;
       const c2 = document.getElementById('color-2').value;
       const c3 = document.getElementById('color-3').value;
-      const filterOld = document.getElementById('filter-old').checked;
+
+      const showC1 = document.getElementById('show-c1').checked;
+      const showC2 = document.getElementById('show-c2').checked;
+      const showC3 = document.getElementById('show-c3').checked;
 
       const fData = (d) => d ? d.split('T')[0] : "Brak danych";
 
       const capitalize = (str) => {
         if (!str) return "";
-        return str.split(' ').map((word, index) => {
+        return str.toString().split(' ').map((word, index) => {
           if (word.toLowerCase() === 'i' && index > 0) return 'i';
           return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
         }).join(' ');
       };
 
       listaOsob.forEach(osoba => {
-        // 1. Pobieranie danych z JSON - upewnij się, że nazwy kluczy są identyczne jak w pliku
+        // 1. Pobieranie podstawowych danych (WAŻNE: tu był brak!)
         let dni = parseInt(osoba.dni_od_ostatniej_wiztyty) || 0;
         let lat = parseFloat(osoba.Lat);
         let lon = parseFloat(osoba.Lon);
 
-        let imie = capitalize(osoba.Imię);
-        let nazwisko = capitalize(osoba.Nazwisko);
-        let telefon = osoba.Telefon_x0020_komórkowy || "";
+        // Jeśli Twoje dane mają teraz pole "Współrzędne" zamiast osobno Lat i Lon, odkomentuj poniższe:
+        /*
+        if (osoba.Współrzędne) {
+            const coords = osoba.Współrzędne.split(',');
+            lat = parseFloat(coords[0]);
+            lon = parseFloat(coords[1]);
+        }
+        */
 
-        // --- TU BYŁ BŁĄD: DODAJEMY DEFINICJE TYCH ZMIENNYCH ---
+        let imie = capitalize(osoba.Imię || "");
+        let nazwisko = capitalize(osoba.Nazwisko || "");
+        let telefon = osoba.Telefon_x0020_komórkowy || "";
         let ulica = osoba.Ulica || "";
         let miasto = osoba.Miejscowość || "";
         let kod = osoba.Kod_x0020_pocztowy || "";
-        // -----------------------------------------------------
 
-        if (filterOld && dni <= prog2) return;
-
+        // 2. Logika koloru i widoczności
         let kolor;
+        let widoczny = true;
+
         if (dni <= prog1) {
           kolor = c1;
+          if (!showC1) widoczny = false;
         } else if (dni <= prog2) {
           kolor = c2;
+          if (!showC2) widoczny = false;
         } else {
           kolor = c3;
+          if (!showC3) widoczny = false;
         }
 
-        // Poprawiony link do Google Maps
-        const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+        // NOWE: Logika filtra producenta
+        const producentOsoby = osoba.Producent || "Nieokreślony";
+        if (!wybraniProducenci.has(producentOsoby)) {
+          widoczny = false;
+        }
+
+        if (!widoczny) return;
+
+        // 3. Tworzenie opisu
+        const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
 
         const opis = `
         <div style="font-family: sans-serif; line-height: 1.4; min-width: 220px;">
@@ -266,8 +303,6 @@
                 <b>Zdarzenie:</b> ${osoba.Opis_x0020_zdarzenia || "-"}<br>
                 <b>Ostatnia wizyta:</b> ${fData(osoba.Data_x0020_ost_x0020_wizy)}<br>
                 <span style="color: #666;">(${dni} dni temu)</span><br>
-                <b>Montaż:</b> ${fData(osoba.Data_x0020_montaźu)}<br>
-                <b>Płatność:</b> ${fData(osoba.Data_x0020_os_x0020_płatnści)}<br>
             </div>
             
             <div style="margin-top: 10px; display: flex; gap: 5px;">
@@ -301,6 +336,11 @@
           const json = JSON.parse(event.target.result);
           // Wyciągamy tablicę z głębi struktury JSON
           const dane = json.dataroot.Do_x0020_XML;
+
+          // --- TO JEST KROK D: DODAJEMY TĘ LINIJKĘ ---
+          aktualizujListeProducentow(dane);
+          // ------------------------------------------
+
           przetworzIRysuj(dane);
         } catch (err) {
           console.error(err);
@@ -332,6 +372,34 @@
         return `${dni} dni (~${lata} lat)`;
       }
     }
+
+    function aktualizujListeProducentow(listaOsob) {
+      const container = document.getElementById('producer-filter-container');
+      const producenci = [...new Set(listaOsob.map(osoba => osoba.Producent || "Nieokreślony"))].sort();
+
+      container.innerHTML = ''; // Czyścimy listę
+      wybraniProducenci = new Set(producenci); // Domyślnie zaznaczamy wszystkich
+
+      producenci.forEach(prod => {
+        const div = document.createElement('div');
+        div.style.marginBottom = "3px";
+        div.innerHTML = `
+            <label style="font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                <input type="checkbox" class="prod-checker" value="${prod}" checked>
+                ${prod}
+            </label>
+        `;
+
+        // Obsługa kliknięcia
+        div.querySelector('input').onclick = (e) => {
+          if (e.target.checked) wybraniProducenci.add(prod);
+          else wybraniProducenci.delete(prod);
+        };
+
+        container.appendChild(div);
+      });
+    }
+
   </script>
 </body>
 

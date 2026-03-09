@@ -311,12 +311,15 @@
         const telefon = osoba.Telefon_x0020_komórkowy || "";
 
         const fragmentOpisu = `
-            <div style="margin-bottom: 10px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
+            <div style="margin-bottom: 10px;">
                 <strong style="font-size: 14px;">${imie} ${nazwisko}</strong><br>
                 <span style="font-size: 11px; color: #666;">${osoba.Ulica || ""} ${osoba.Miejscowość || ""}</span><br>
                 <div style="font-size: 12px; margin-top: 4px;">
-                    <b>Prod:</b> ${osoba.Producent || "-"}<br>
+                    <b>Producent:</b> ${osoba.Producent || "-"}<br>
                     <b>Wizyta:</b> ${fData(osoba.Data_x0020_ost_x0020_wizy)} (${dni} dni)<br>
+                    <b>Data montażu:</b> ${fData(osoba.Data_x0020_montaźu)} (${dni} dni)<br>
+                    <b>Data ost płatności:</b> ${fData(osoba.Data_x0020_os_x0020_płatnści)} (${dni} dni)<br>
+
                 </div>
                 <div style="margin-top: 8px; display: flex; gap: 4px;">
                     <a href="tel:${telefon}" style="flex: 1; text-align: center; background: #28a745; color: white; padding: 6px 2px; text-decoration: none; border-radius: 4px; font-size: 10px; font-weight: bold;">ZADZWOŃ</a>

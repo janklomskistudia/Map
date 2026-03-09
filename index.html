@@ -230,17 +230,28 @@
 
       const prog1 = skalarNaDni(t1.value);
       const prog2 = skalarNaDni(t2.value);
+      const kolory = {
+        c1: document.getElementById('color-1').value,
+        c2: document.getElementById('color-2').value,
+        c3: document.getElementById('color-3').value
+      };
 
-      const c1 = document.getElementById('color-1').value;
-      const c2 = document.getElementById('color-2').value;
-      const c3 = document.getElementById('color-3').value;
+      const widocznosc = {
+        showC1: document.getElementById('show-c1').checked,
+        showC2: document.getElementById('show-c2').checked,
+        showC3: document.getElementById('show-c3').checked
+      };
 
-      const showC1 = document.getElementById('show-c1').checked;
-      const showC2 = document.getElementById('show-c2').checked;
-      const showC3 = document.getElementById('show-c3').checked;
+      const wagaKoloru = {
+        [document.getElementById('color-1').value]: 1, // Zielony (najmniej ważny)
+        [document.getElementById('color-2').value]: 2, // Żółty
+        [document.getElementById('color-3').value]: 3, // Czerwony (itd.)
+        "orange": 4,
+        "purple": 5,
+        "black": 6 // Czarny (najważniejszy)
+      };
 
       const fData = (d) => d ? d.split('T')[0] : "Brak danych";
-
       const capitalize = (str) => {
         if (!str) return "";
         return str.toString().split(' ').map((word, index) => {
@@ -249,90 +260,108 @@
         }).join(' ');
       };
 
-      listaOsob.forEach(osoba => {
-        // 1. Pobieranie współrzędnych z nowego formatu "Lat, Lon"
-        let lat = NaN;
-        let lon = NaN;
+      // SŁOWNIK DO GRUPOWANIA PUNKTÓW
+      const grupyPunktow = {};
 
+      listaOsob.forEach(osoba => {
+        // Parsowanie współrzędnych
+        let lat = NaN, lon = NaN;
         if (osoba.Wspolrzedne) {
           const czesci = osoba.Wspolrzedne.split(',');
           if (czesci.length === 2) {
             lat = parseFloat(czesci[0].trim());
             lon = parseFloat(czesci[1].trim());
           }
-        } else {
-          // Rezerwowe pobieranie, jeśli format byłby stary
-          lat = parseFloat(osoba.Lat);
-          lon = parseFloat(osoba.Lon);
         }
 
-        // Pobieranie dni i reszty danych
-        let dni = parseInt(osoba.dni_od_ostatniej_wiztyty) || 0;
-        let imie = capitalize(osoba.Imię || "");
-        let nazwisko = capitalize(osoba.Nazwisko || "");
-        let telefon = osoba.Telefon_x0020_komórkowy || "";
-        let ulica = osoba.Ulica || "";
-        let miasto = osoba.Miejscowość || "";
-        let kod = osoba.Kod_x0020_pocztowy || "";
+        if (isNaN(lat) || isNaN(lon)) return;
 
-        // 2. Logika koloru i widoczności
+        // Logika filtra producenta
+        const producentOsoby = osoba.Producent || "Nieokreślony";
+        if (!wybraniProducenci.has(producentOsoby)) return;
+
+        // Logika koloru i progów dni
+        let dni = parseInt(osoba.dni_od_ostatniej_wiztyty) || 0;
         let kolor;
         let widoczny = true;
 
         if (dni <= prog1) {
-          kolor = c1;
-          if (!showC1) widoczny = false;
+          kolor = kolory.c1;
+          if (!widocznosc.showC1) widoczny = false;
         } else if (dni <= prog2) {
-          kolor = c2;
-          if (!showC2) widoczny = false;
+          kolor = kolory.c2;
+          if (!widocznosc.showC2) widoczny = false;
         } else {
-          kolor = c3;
-          if (!showC3) widoczny = false;
-        }
-
-        // Logika filtra producenta
-        const producentOsoby = osoba.Producent || "Nieokreślony";
-        if (!wybraniProducenci.has(producentOsoby)) {
-          widoczny = false;
+          kolor = kolory.c3;
+          if (!widocznosc.showC3) widoczny = false;
         }
 
         if (!widoczny) return;
 
-        // 3. Tworzenie opisu i linku nawigacji
-        const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
-
-        const opis = `
-        <div style="font-family: sans-serif; line-height: 1.4; min-width: 220px;">
-            <strong style="font-size: 15px;">${imie} ${nazwisko}</strong><br>
-            <div style="font-size: 12px; color: #555; margin-bottom: 5px;">
-                ${ulica} ${miasto} ${kod}
-            </div>
-            <hr style="margin: 5px 0; border: 0; border-top: 1px solid #eee;">
-            <div style="font-size: 12px;">
-                <b>Producent:</b> ${osoba.Producent || "-"}<br>
-                <b>Zdarzenie:</b> ${osoba.Opis_x0020_zdarzenia || "-"}<br>
-                <b>Ostatnia wizyta:</b> ${fData(osoba.Data_x0020_ost_x0020_wizy)}<br>
-                <span style="color: #666;">(${dni} dni temu)</span><br>
-                <b>Montaż:</b> ${fData(osoba.Data_x0020_montaźu)}<br>
-                <b>Płatność:</b> ${fData(osoba.Data_x0020_os_x0020_płatnści)}<br>
-            </div>
-            
-            <div style="margin-top: 10px; display: flex; gap: 5px;">
-                <a href="tel:${telefon}" style="flex: 1; text-align: center; background: #28a745; color: white; padding: 10px 4px; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center;">
-                    ZADZWOŃ
-                </a>
-                <a href="${googleMapsUrl}" target="_blank" style="flex: 1; text-align: center; background: #4285F4; color: white; padding: 10px 4px; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center;">
-                    NAWIGUJ
-                </a>
-            </div>
-        </div>
-    `;
-
-
-        if (!isNaN(lat) && !isNaN(lon)) {
-          const m = dodawanie(opis, lat, lon, kolor);
-          layerGroup.addLayer(m);
+        // TWORZENIE KLUCZA GRUPOWANIA (unikalne współrzędne)
+        const klucz = `${lat}_${lon}`;
+        if (!grupyPunktow[klucz]) {
+          grupyPunktow[klucz] = { lat, lon, kolor, opisy: [] };
         }
+
+        // Budowanie fragmentu opisu dla pojedynczego rekordu
+        const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+        const imie = capitalize(osoba.Imię || "");
+        const nazwisko = capitalize(osoba.Nazwisko || "");
+        const telefon = osoba.Telefon_x0020_komórkowy || "";
+
+        const fragmentOpisu = `
+            <div style="margin-bottom: 10px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
+                <strong style="font-size: 14px;">${imie} ${nazwisko}</strong><br>
+                <span style="font-size: 11px; color: #666;">${osoba.Ulica || ""} ${osoba.Miejscowość || ""}</span><br>
+                <div style="font-size: 12px; margin-top: 4px;">
+                    <b>Prod:</b> ${osoba.Producent || "-"}<br>
+                    <b>Wizyta:</b> ${fData(osoba.Data_x0020_ost_x0020_wizy)} (${dni} dni)<br>
+                </div>
+                <div style="margin-top: 8px; display: flex; gap: 4px;">
+                    <a href="tel:${telefon}" style="flex: 1; text-align: center; background: #28a745; color: white; padding: 6px 2px; text-decoration: none; border-radius: 4px; font-size: 10px; font-weight: bold;">ZADZWOŃ</a>
+                    <a href="${googleMapsUrl}" target="_blank" style="flex: 1; text-align: center; background: #4285F4; color: white; padding: 6px 2px; text-decoration: none; border-radius: 4px; font-size: 10px; font-weight: bold;">NAWIGUJ</a>
+                </div>
+            </div>
+        `;
+
+        grupyPunktow[klucz].opisy.push(fragmentOpisu);
+        // Jeśli w jednym miejscu są różne kolory, przyjmij kolor "najpilniejszy" (opcjonalne)
+        // TWORZENIE LUB AKTUALIZACJA GRUPY
+        if (!grupyPunktow[klucz]) {
+          grupyPunktow[klucz] = { lat, lon, kolor, opisy: [] };
+        } else {
+          // Sprawdzamy, czy nowy kolor jest "ważniejszy" niż ten, który już tam jest
+          const obecnaWaga = wagaKoloru[grupyPunktow[klucz].color] || 0;
+          const nowaWaga = wagaKoloru[kolor] || 0;
+
+          if (nowaWaga > obecnaWaga) {
+            grupyPunktow[klucz].kolor = kolor;
+          }
+        }
+      });
+
+      // RYSOWANIE ZEBRANYCH PUNKTÓW
+      Object.values(grupyPunktow).forEach(grupa => {
+        // Logika wyświetlania nagłówka: tylko jeśli więcej niż 1 urządzenie
+        const naglowekLicznik = grupa.opisy.length > 1
+          ? `<div style="background: #eee; padding: 3px; font-size: 10px; text-align: center; margin-bottom: 10px; border-radius: 3px;">
+                 Liczba urządzeń w tej lokalizacji: ${grupa.opisy.length}
+               </div>`
+          : "";
+
+        const pelnyOpis = `
+            <div style="font-family: sans-serif; max-height: 300px; overflow-y: auto; min-width: 200px;">
+                ${naglowekLicznik}
+                ${grupa.opisy.join('')}
+            </div>
+        `;
+
+        const m = L.circleMarker([grupa.lat, grupa.lon], {
+          radius: 11, color: grupa.grupa_kolor || grupa.kolor, fillColor: grupa.grupa_kolor || grupa.kolor, fillOpacity: 0.7, weight: 2
+        }).bindPopup(pelnyOpis);
+
+        layerGroup.addLayer(m);
       });
 
       if (layerGroup.getLayers().length > 0) {

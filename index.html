@@ -122,7 +122,18 @@
     <h3 class="color-settings">Ustawienia Kolorów</h3>
     <div class="settings-content">
       <div class="range-group">
-        <label><input type="checkbox" id="show-c1" checked> <b>Kolor 1: </b>0 do <span id="val-1">300</span></label>
+        <label><input type="checkbox" id="show-c0" checked> <b>Kolor 0: </b>dla 0</label>
+        <select id="color-0">
+          <option value="green">Zielony</option>
+          <option value="yellow">Żółty</option>
+          <option value="red">Czerwony</option>
+          <option value="orange">Pomarańczowy</option>
+          <option value="purple" selected>Fioletowy</option>
+          <option value="black">Czarny</option>
+        </select>
+      </div>
+      <div class="range-group">
+        <label><input type="checkbox" id="show-c1" checked> <b>Kolor 1: </b>1 do <span id="val-1">300</span></label>
         <select id="color-1">
           <option value="green" selected>Zielony</option>
           <option value="yellow">Żółty</option>
@@ -245,6 +256,7 @@
       };
 
       const wagaKoloru = {
+        [document.getElementById('color-0').value]: 0, // Fioletowy zero
         [document.getElementById('color-1').value]: 1, // Zielony (najmniej ważny)
         [document.getElementById('color-2').value]: 2, // Żółty
         [document.getElementById('color-3').value]: 3, // Czerwony (itd.)
@@ -287,13 +299,20 @@
         let kolor;
         let widoczny = true;
 
-        if (dni <= prog1) {
+        if (dni === 0) {
+          // Warunek dla 0
+          kolor = document.getElementById('color-0').value;
+          if (!document.getElementById('show-c0').checked) widoczny = false;
+        } else if (dni <= prog1) {
+          // Warunek dla 1 do prog1 (nie trzeba pisać dni >= 1, bo else if już wykluczył zero)
           kolor = kolory.c1;
           if (!widocznosc.showC1) widoczny = false;
         } else if (dni <= prog2) {
+          // Warunek dla prog1 do prog2
           kolor = kolory.c2;
           if (!widocznosc.showC2) widoczny = false;
         } else {
+          // Warunek powyżej prog2
           kolor = kolory.c3;
           if (!widocznosc.showC3) widoczny = false;
         }
@@ -311,15 +330,19 @@
         const imie = capitalize(osoba.Imię || "");
         const nazwisko = capitalize(osoba.Nazwisko || "");
         const telefon = osoba.Telefon_x0020_komórkowy || "";
+        const dniWizyta = liczDniOdDzis(osoba.Data_x0020_ost_x0020_wizy);
+        const dniMontaz = liczDniOdDzis(osoba.Data_x0020_montaźu);
+        // const dniPlatnosc = liczDniOdDzis(osoba.Data_x0020_os_x0020_płatnści);
 
         const fragmentOpisu = `
             <div style="margin-bottom: 10px;">
-                <strong style="font-size: 14px;">${imie} ${nazwisko}</strong><br>
+                <strong style="font-size: 14px;">${osoba.Ulica || ""} ${imie} ${nazwisko}</strong><br>
                 <span style="font-size: 11px; color: #666;">${osoba.Ulica || ""} ${osoba.Miejscowość || ""}</span><br>
                 <div style="font-size: 12px; margin-top: 4px;">
+                    <b>ID:</b> ${osoba.ID || "-"}<br>
                     <b>Producent:</b> ${osoba.Producent || "-"}<br>
-                    <b>Wizyta:</b> ${fData(osoba.Data_x0020_ost_x0020_wizy)} (${dni} dni)<br>
-                    <b>Data montażu:</b> ${fData(osoba.Data_x0020_montaźu)} (${dni} dni)<br>
+                    <b>Wizyta:</b> ${fData(osoba.Data_x0020_ost_x0020_wizy)} (${dniWizyta} dni)<br>
+                    <b>Montaż:</b> ${fData(osoba.Data_x0020_montaźu)} (${dniMontaz} dni)<br>
                     <b>Data ost płatności:</b> ${fData(osoba.Data_x0020_os_x0020_płatnści)} (${dni} dni)<br>
 
                 </div>
@@ -464,6 +487,18 @@
         wybraniProducenci.delete(cb.value);
       });
     };
+
+    function liczDniOdDzis(dataString) {
+      if (!dataString || dataString === "Brak danych") return "-";
+      const data = new Date(dataString);
+      const dzis = new Date();
+      // Zerujemy godziny, by liczyć tylko pełne dni
+      dzis.setHours(0, 0, 0, 0);
+      data.setHours(0, 0, 0, 0);
+
+      const roznicaMs = dzis - data;
+      return Math.floor(roznicaMs / (1000 * 60 * 60 * 24));
+    }
 
   </script>
 </body>
